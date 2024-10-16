@@ -63,7 +63,7 @@ func (w *Work) If(condition func(in any) bool, ifTrue *Work, ifFalse *Work) *Wor
 	}))
 }
 
-func (w *Work) Parallel(results func([]any) any, work ...*Work) *Work {
+func (w *Work) Parallel(result func([]any) any, work ...*Work) *Work {
 	return w.Next(Wrap(func(in any) any {
 		var lock sync.Mutex
 		var outputs []any
@@ -79,6 +79,6 @@ func (w *Work) Parallel(results func([]any) any, work ...*Work) *Work {
 			}(in)
 		}
 		wg.Wait()
-		return results(outputs)
+		return result(outputs)
 	}))
 }
