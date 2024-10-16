@@ -27,30 +27,35 @@ func Test_Unit_Action_Wrap(t *testing.T) {
 		name     string
 		action   Action
 		next     Action
+		in       any
 		expected any
 	}{
 		{
 			name:     "action and next",
 			action:   action1,
 			next:     action2,
+			in:       1,
 			expected: 4,
 		},
 		{
 			name:     "no actions",
 			action:   nil,
 			next:     nil,
+			in:       1,
 			expected: nil,
 		},
 		{
 			name:     "action only",
 			action:   action1,
 			next:     nil,
+			in:       1,
 			expected: 2,
 		},
 		{
 			name:     "next only",
 			action:   nil,
 			next:     action2,
+			in:       1,
 			expected: 3,
 		},
 	}
@@ -61,7 +66,7 @@ func Test_Unit_Action_Wrap(t *testing.T) {
 			combo := Wrap(tc.action, tc.next)
 
 			// assert
-			assert.Equal(t, tc.expected, combo(1))
+			assert.Equal(t, tc.expected, combo(tc.in))
 		})
 	}
 }
@@ -81,12 +86,26 @@ func Test_Unit_Action_Combine(t *testing.T) {
 	testCases := []struct {
 		name     string
 		actions  []Action
+		in       any
 		expected any
 	}{
 		{
 			name:     "three actions",
 			actions:  []Action{action1, action2, action3},
+			in:       1,
 			expected: 7,
+		},
+		{
+			name:     "single actions",
+			actions:  []Action{action1},
+			in:       1,
+			expected: 2,
+		},
+		{
+			name:     "no actions",
+			actions:  nil,
+			in:       1,
+			expected: nil,
 		},
 	}
 
@@ -96,7 +115,7 @@ func Test_Unit_Action_Combine(t *testing.T) {
 			combo := Combine(tc.actions...)
 
 			// assert
-			assert.Equal(t, tc.expected, combo(1))
+			assert.Equal(t, tc.expected, combo(tc.in))
 		})
 	}
 }
@@ -109,6 +128,59 @@ func Test_Unit_Action_Do(t *testing.T) {
 
 	// act
 	assert.Equal(t, 2, action(1))
+}
+
+func Test_Unit_Action_If(t *testing.T) {
+	// arrange
+	action1 := Do(func(in int) int {
+		return in + 1
+	})
+	action2 := Do(func(in int) int {
+		return in + 2
+	})
+
+	testCases := []struct {
+		name      string
+		condition func(any) bool
+		ifTrue    Action
+		ifFalse   Action
+		expected  any
+	}{
+		{
+			name:     "action and next",
+			ifTrue:   action1,
+			ifFalse:  action2,
+			expected: 4,
+		},
+		{
+			name:     "no actions",
+			ifTrue:   nil,
+			ifFalse:  nil,
+			expected: nil,
+		},
+		{
+			name:     "action only",
+			ifTrue:   action1,
+			ifFalse:  nil,
+			expected: 2,
+		},
+		{
+			name:     "next only",
+			ifTrue:   nil,
+			ifFalse:  action2,
+			expected: 3,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// act
+			combo := If(tc.condition, tc.ifTrue, tc.ifFalse)
+
+			// assert
+			assert.Equal(t, tc.expected, combo(1))
+		})
+	}
 }
 
 // func Test_Unit_MultipleNext(t *testing.T) {
