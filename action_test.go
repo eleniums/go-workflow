@@ -101,53 +101,15 @@ func Test_Unit_Action_Combine(t *testing.T) {
 	}
 }
 
-// func Test_Unit_Action_Combine(t *testing.T) {
-// 	// arrange
-// 	action1 := Do(func(in int) int {
-// 		fmt.Println("action1")
-// 		return in + 1
-// 	})
-// 	action2 := Do(func(in int) int {
-// 		fmt.Println("action2")
-// 		return in + 2
-// 	})
-// 	action3 := Do(func(in int) int {
-// 		fmt.Println("action3")
-// 		return in + 3
-// 	})
+func Test_Unit_Action_Do(t *testing.T) {
+	// arrange
+	action := Do(func(in int) int {
+		return in + 1
+	})
 
-// 	// act
-// 	combo := Combine(action1, action2, action3)
-
-// 	// assert
-// 	assert.Equal(t, 7, combo(1))
-// }
-
-// func Test_Unit_Create(t *testing.T) {
-// 	// arrange
-// 	workflow := Create().Do(func(in int) int {
-// 		return in * 5
-// 	})
-
-// 	// act
-// 	assert.Equal(t, 5, workflow.Start(1))
-// 	assert.Equal(t, 10, workflow.Start(2))
-// 	assert.Equal(t, 15, workflow.Start(3))
-// }
-
-// func Test_Unit_Next(t *testing.T) {
-// 	// arrange
-// 	workflow := Create().Do(func(in int) int {
-// 		return in * 5
-// 	}).Next(Do(func(in int) int {
-// 		return in + 2
-// 	}))
-
-// 	// act
-// 	assert.Equal(t, 7, workflow.Start(1))
-// 	assert.Equal(t, 12, workflow.Start(2))
-// 	assert.Equal(t, 17, workflow.Start(3))
-// }
+	// act
+	assert.Equal(t, 2, action(1))
+}
 
 // func Test_Unit_MultipleNext(t *testing.T) {
 // 	// arrange
