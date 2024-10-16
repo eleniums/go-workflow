@@ -2,13 +2,15 @@ package workflow
 
 type Action func(any) any
 
-type Worker interface {
-	// TODO: not sure if this is needed for the run method or not
-}
-
 type Work struct {
 	action Action
 	next   *Work
+}
+
+func Define[T1 any, T2 any](action func(T1) T2) *Work {
+	return &Work{
+		action: Wrap(action),
+	}
 }
 
 func Wrap[T1 any, T2 any](action func(T1) T2) Action {
@@ -19,13 +21,7 @@ func Wrap[T1 any, T2 any](action func(T1) T2) Action {
 	}
 }
 
-func Define[T1 any, T2 any](action func(T1) T2) *Work {
-	return &Work{
-		action: Wrap(action),
-	}
-}
-
-func (w *Work) Next[T any](action Action) *Work {
+func (w *Work) Next(action Action) *Work {
 	w.next = &Work{
 		action: action,
 	}
