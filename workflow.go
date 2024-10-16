@@ -43,6 +43,7 @@ func (w *Work) Run(in any) any {
 func (w *Work) Next(action Action) *Work {
 	w.next = &Work{
 		action: action,
+		first:  w.first,
 	}
 	return w.next
 }
