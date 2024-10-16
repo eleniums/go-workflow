@@ -13,9 +13,9 @@ func Test_Unit_Define(t *testing.T) {
 	}))
 
 	// act
-	assert.Equal(t, 5, workflow.Start(1))
-	assert.Equal(t, 10, workflow.Start(2))
-	assert.Equal(t, 15, workflow.Start(3))
+	assertResult(t, 5, workflow.Start(1))
+	assertResult(t, 10, workflow.Start(2))
+	assertResult(t, 15, workflow.Start(3))
 }
 
 func Test_Unit_Next(t *testing.T) {
@@ -27,9 +27,9 @@ func Test_Unit_Next(t *testing.T) {
 	}))
 
 	// act
-	assert.Equal(t, 7, workflow.Start(1))
-	assert.Equal(t, 12, workflow.Start(2))
-	assert.Equal(t, 17, workflow.Start(3))
+	assertResult(t, 7, workflow.Start(1))
+	assertResult(t, 12, workflow.Start(2))
+	assertResult(t, 17, workflow.Start(3))
 }
 
 func Test_Unit_MultipleNext(t *testing.T) {
@@ -43,9 +43,9 @@ func Test_Unit_MultipleNext(t *testing.T) {
 	}))
 
 	// act
-	assert.Equal(t, 6, workflow.Start(1))
-	assert.Equal(t, 11, workflow.Start(2))
-	assert.Equal(t, 16, workflow.Start(3))
+	assertResult(t, 6, workflow.Start(1))
+	assertResult(t, 11, workflow.Start(2))
+	assertResult(t, 16, workflow.Start(3))
 }
 
 func Test_Unit_If(t *testing.T) {
@@ -54,8 +54,8 @@ func Test_Unit_If(t *testing.T) {
 		return in * 5
 	})).Next(Wrap(func(in int) int {
 		return in + 2
-	})).If(func(in any) bool {
-		v := in.(int)
+	})).If(func(in []any) bool {
+		v := in[0].(int)
 		return v%2 == 1
 	}, Define(Wrap(func(in int) int {
 		return in + 4
@@ -64,7 +64,12 @@ func Test_Unit_If(t *testing.T) {
 	})))
 
 	// act
-	assert.Equal(t, 11, workflow.Start(1))
-	assert.Equal(t, 8, workflow.Start(2))
-	assert.Equal(t, 21, workflow.Start(3))
+	assertResult(t, 11, workflow.Start(1))
+	assertResult(t, 8, workflow.Start(2))
+	assertResult(t, 21, workflow.Start(3))
+}
+
+func assertResult[T1 any, T2 any](t *testing.T, expected T1, actual []T2) {
+	assert.NotEmpty(t, actual)
+	assert.Equal(t, expected, actual[0])
 }
