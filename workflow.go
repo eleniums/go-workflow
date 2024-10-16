@@ -57,8 +57,8 @@ func (w *Work) If(condition func(in any) bool, ifTrue *Work, ifFalse *Work) *Wor
 
 func (w *Work) Parallel(result func([]any) any, work ...*Work) *Work {
 	return w.Next(Wrap(func(in any) any {
-		var lock sync.Mutex
 		var outputs []any
+		var lock sync.Mutex
 		var wg sync.WaitGroup
 		for _, w := range work {
 			wg.Add(1)

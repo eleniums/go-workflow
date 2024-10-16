@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"fmt"
 	"testing"
 
 	assert "github.com/stretchr/testify/require"
@@ -67,4 +68,29 @@ func Test_Unit_If(t *testing.T) {
 	assert.Equal(t, 11, workflow.Start(1))
 	assert.Equal(t, 8, workflow.Start(2))
 	assert.Equal(t, 21, workflow.Start(3))
+}
+
+func Test_Unit_Parallel(t *testing.T) {
+	// arrange
+	workflow := Define(Wrap(func(in int) int {
+		return in * 5
+	})).Parallel(func(results []any) any {
+		total := 0
+		for _, v := range results {
+			total += v.(int)
+		}
+		return total
+	}, Define(Wrap(func(in int) int {
+		return in + 2
+	})), Define(Wrap(func(in int) int {
+		return in - 1
+	}))).Next(Wrap(func(total int) int {
+		fmt.Println(total)
+		return total
+	}))
+
+	// act
+	assert.Equal(t, 11, workflow.Start(1))
+	assert.Equal(t, 21, workflow.Start(2))
+	assert.Equal(t, 31, workflow.Start(3))
 }
