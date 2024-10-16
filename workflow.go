@@ -9,9 +9,9 @@ type Work struct {
 	next   *Work
 }
 
-func Define[T1 any, T2 any](action func(T1) T2) *Work {
+func Define(action func(in any) any) *Work {
 	work := &Work{
-		action: Wrap(action),
+		action: action,
 	}
 	work.first = work
 	return work
