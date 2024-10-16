@@ -32,15 +32,7 @@ func (w *Work) Start(in any) any {
 	if w.first == nil {
 		return nil
 	}
-	return w.first.Run(in)
-}
-
-func (w *Work) Run(in any) any {
-	out := w.action(in)
-	if w.next != nil {
-		return w.next.Run(out)
-	}
-	return out
+	return w.first.run(in)
 }
 
 func (w *Work) Next(action Action) *Work {
@@ -81,4 +73,12 @@ func (w *Work) Parallel(result func([]any) any, work ...*Work) *Work {
 		wg.Wait()
 		return result(outputs)
 	}))
+}
+
+func (w *Work) run(in any) any {
+	out := w.action(in)
+	if w.next != nil {
+		return w.next.run(out)
+	}
+	return out
 }
