@@ -1,5 +1,9 @@
 package workflow
 
+import (
+	"sync"
+)
+
 type Action func(any) any
 
 type Work struct {
@@ -59,13 +63,21 @@ func (w *Work) If(condition func(in any) bool, ifTrue *Work, ifFalse *Work) *Wor
 	}))
 }
 
-// func (w *Work) Parallel(work ...Action) *Work {
-// 	return w.Next(Wrap(func(in any) any {
-// 		var out any
-// 		var wg sync.WaitGroup
-// 		for w := range work {
-// 			// TODO: how to recombine results after finished? maybe just support two parallel tasks for now and a results function?
-// 		}
-// 		return out
-// 	}))
-// }
+func (w *Work) Parallel(results func([]any) any, work ...*Work) *Work {
+	return w.Next(Wrap(func(in any) any {
+		var lock sync.Mutex
+		var outputs []any
+		var wg sync.WaitGroup
+		for _, w := range work {
+			wg.Add(1)
+			go func(in any) {
+				defer wg.Done()
+				out := w.Start(in)
+				lock.Lock()
+				defer lock.Unlock()
+				outputs = append(outputs, out)
+			}(in)
+		}
+		return results(outputs)
+	}))
+}
