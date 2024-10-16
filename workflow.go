@@ -78,6 +78,7 @@ func (w *Work) Parallel(results func([]any) any, work ...*Work) *Work {
 				outputs = append(outputs, out)
 			}(in)
 		}
+		wg.Wait()
 		return results(outputs)
 	}))
 }
