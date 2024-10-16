@@ -141,33 +141,58 @@ func Test_Unit_Action_If(t *testing.T) {
 
 	testCases := []struct {
 		name      string
-		condition func(any) bool
+		condition func(in any) bool
 		ifTrue    Action
 		ifFalse   Action
+		in        any
 		expected  any
 	}{
 		{
-			name:     "action and next",
-			ifTrue:   action1,
-			ifFalse:  action2,
-			expected: 4,
+			name:      "nil condition",
+			condition: nil,
+			ifTrue:    action1,
+			ifFalse:   action2,
+			in:        1,
+			expected:  nil,
 		},
 		{
-			name:     "no actions",
+			name: "nil true",
+			condition: func(in any) bool {
+				return true
+			},
 			ifTrue:   nil,
-			ifFalse:  nil,
+			ifFalse:  action2,
+			in:       1,
 			expected: nil,
 		},
 		{
-			name:     "action only",
+			name: "nil false",
+			condition: func(in any) bool {
+				return true
+			},
 			ifTrue:   action1,
 			ifFalse:  nil,
+			in:       1,
+			expected: nil,
+		},
+		{
+			name: "true",
+			condition: func(in any) bool {
+				return true
+			},
+			ifTrue:   action1,
+			ifFalse:  action2,
+			in:       1,
 			expected: 2,
 		},
 		{
-			name:     "next only",
-			ifTrue:   nil,
+			name: "false",
+			condition: func(in any) bool {
+				return false
+			},
+			ifTrue:   action1,
 			ifFalse:  action2,
+			in:       1,
 			expected: 3,
 		},
 	}
@@ -178,7 +203,7 @@ func Test_Unit_Action_If(t *testing.T) {
 			combo := If(tc.condition, tc.ifTrue, tc.ifFalse)
 
 			// assert
-			assert.Equal(t, tc.expected, combo(1))
+			assert.Equal(t, tc.expected, combo(tc.in))
 		})
 	}
 }
