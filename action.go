@@ -4,28 +4,18 @@ import (
 	"sync"
 )
 
-// A function that will be executed as part of a workflow.
+// TODO: add error to the Action signature?
+// A simple function definition with a single input and output.
 type Action func(any) any
 
+// Returns an action that does nothing and returns nil.
 func NoOp() Action {
 	return func(in any) any {
 		return nil
 	}
 }
 
-func Combine(actions ...Action) Action {
-	if len(actions) == 0 {
-		return NoOp()
-	}
-
-	combined := actions[0]
-	for i := 1; i < len(actions); i++ {
-		combined = Wrap(combined, actions[i])
-	}
-
-	return combined
-}
-
+// Wraps provided actions so that "action" is called first and then "next" is called.
 func Wrap(action Action, next Action) Action {
 	if action == nil && next == nil {
 		return NoOp()
@@ -42,7 +32,21 @@ func Wrap(action Action, next Action) Action {
 	}
 }
 
-// Convenience function to wrap a function with types into an Action function.
+// Combines multiple actions into a single action that will execute based on the order the actions were passed.
+func Combine(actions ...Action) Action {
+	if len(actions) == 0 {
+		return NoOp()
+	}
+
+	combined := actions[0]
+	for i := 1; i < len(actions); i++ {
+		combined = Wrap(combined, actions[i])
+	}
+
+	return combined
+}
+
+// Wrap a function with types into an action.
 func Do[T1 any, T2 any](action func(T1) T2) Action {
 	return func(in any) any {
 		input := in.(T1)
@@ -51,7 +55,7 @@ func Do[T1 any, T2 any](action func(T1) T2) Action {
 	}
 }
 
-// Conditionally execute another block of work. Only one path will be executed.
+// Conditionally execute another action. Only one action will be executed.
 func If[T any](condition func(in T) bool, ifTrue Action, ifFalse Action) Action {
 	return func(in any) any {
 		input := in.(T)
@@ -65,7 +69,7 @@ func If[T any](condition func(in T) bool, ifTrue Action, ifFalse Action) Action 
 	}
 }
 
-// Execute multiple blocks of work in parallel. The result function will combine all results into a single result.
+// Execute multiple actions in parallel. The result function will combine all results into a single result.
 func Parallel[T any](result func([]any) T, actions ...Action) Action {
 	return func(in any) any {
 		var outputs []any
