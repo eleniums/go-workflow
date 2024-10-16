@@ -1,7 +1,6 @@
 package workflow
 
 type Action func(any) any
-type Condition func() bool
 
 type Work struct {
 	action Action
@@ -48,12 +47,25 @@ func (w *Work) Next(action Action) *Work {
 	return w.next
 }
 
-func (w *Work) If(condition func() bool, ifTrue *Work, ifFalse *Work) *Work {
-	// TODO: implement
-	return nil
+func (w *Work) If(condition func(in any) bool, ifTrue *Work, ifFalse *Work) *Work {
+	return w.Next(Wrap(func(in any) any {
+		var out any
+		if condition(in) {
+			out = ifTrue.Start(in)
+		} else {
+			out = ifFalse.Start(in)
+		}
+		return out
+	}))
 }
 
-func (w *Work) Parallel(work1 Action, work2 Action) *Work {
-	// TODO: implement
-	return nil
-}
+// func (w *Work) Parallel(work ...Action) *Work {
+// 	return w.Next(Wrap(func(in any) any {
+// 		var out any
+// 		var wg sync.WaitGroup
+// 		for w := range work {
+// 			// TODO: how to recombine results after finished? maybe just support two parallel tasks for now and a results function?
+// 		}
+// 		return out
+// 	}))
+// }

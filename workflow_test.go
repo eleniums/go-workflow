@@ -10,7 +10,6 @@ func Test_Unit_Define(t *testing.T) {
 	// arrange
 	workflow := Define(Wrap(func(in int) int {
 		return in * 5
-
 	}))
 
 	// act
@@ -23,7 +22,6 @@ func Test_Unit_Next(t *testing.T) {
 	// arrange
 	workflow := Define(Wrap(func(in int) int {
 		return in * 5
-
 	})).Next(Wrap(func(in int) int {
 		return in + 2
 	}))
@@ -38,7 +36,6 @@ func Test_Unit_MultipleNext(t *testing.T) {
 	// arrange
 	workflow := Define(Wrap(func(in int) int {
 		return in * 5
-
 	})).Next(Wrap(func(in int) int {
 		return in + 2
 	})).Next(Wrap(func(in int) int {
@@ -49,4 +46,25 @@ func Test_Unit_MultipleNext(t *testing.T) {
 	assert.Equal(t, 6, workflow.Start(1))
 	assert.Equal(t, 11, workflow.Start(2))
 	assert.Equal(t, 16, workflow.Start(3))
+}
+
+func Test_Unit_If(t *testing.T) {
+	// arrange
+	workflow := Define(Wrap(func(in int) int {
+		return in * 5
+	})).Next(Wrap(func(in int) int {
+		return in + 2
+	})).If(func(in any) bool {
+		v := in.(int)
+		return v%2 == 1
+	}, Define(Wrap(func(in int) int {
+		return in + 4
+	})), Define(Wrap(func(in int) int {
+		return in - 4
+	})))
+
+	// act
+	assert.Equal(t, 11, workflow.Start(1))
+	assert.Equal(t, 8, workflow.Start(2))
+	assert.Equal(t, 21, workflow.Start(3))
 }
