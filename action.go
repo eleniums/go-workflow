@@ -57,6 +57,11 @@ func Do[T1 any, T2 any](action func(T1) T2) Action {
 
 // Conditionally execute another action. Only one action will be executed.
 func If[T any](condition func(in T) bool, ifTrue Action, ifFalse Action) Action {
+	// all functions must be valid
+	if condition == nil || ifTrue == nil || ifFalse == nil {
+		return NoOp()
+	}
+
 	return func(in any) any {
 		input := in.(T)
 		var out any
