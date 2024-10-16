@@ -4,14 +4,22 @@ import (
 	"sync"
 )
 
+// A function that will be executed as part of a workflow.
 type Action func(any) any
 
+// Represents a block of work in a workflow.
 type Work struct {
+	// Action to be performed for this workflow.
 	action Action
-	first  *Work
-	next   *Work
+
+	// First block of work to be performed in the entire workflow.
+	first *Work
+
+	// Next block of work to be performed after this completes.
+	next *Work
 }
 
+// Create the first block of work to be performed.
 func Define(action func(in any) any) *Work {
 	work := &Work{
 		action: action,
@@ -20,6 +28,7 @@ func Define(action func(in any) any) *Work {
 	return work
 }
 
+// Convenience function to wrap a function with types into an Action function.
 func Wrap[T1 any, T2 any](action func(T1) T2) Action {
 	return func(in interface{}) interface{} {
 		input := in.(T1)
@@ -28,6 +37,7 @@ func Wrap[T1 any, T2 any](action func(T1) T2) Action {
 	}
 }
 
+// Start the workflow from the very beginning.
 func (w *Work) Start(in any) any {
 	if w.first == nil {
 		return nil
@@ -35,6 +45,7 @@ func (w *Work) Start(in any) any {
 	return w.first.run(in)
 }
 
+// Define the next block of work to be performed.
 func (w *Work) Next(action Action) *Work {
 	w.next = &Work{
 		action: action,
@@ -43,6 +54,7 @@ func (w *Work) Next(action Action) *Work {
 	return w.next
 }
 
+// Conditionally execute another block of work. Only one path will be executed.
 func (w *Work) If(condition func(in any) bool, ifTrue *Work, ifFalse *Work) *Work {
 	return w.Next(Wrap(func(in any) any {
 		var out any
@@ -55,6 +67,7 @@ func (w *Work) If(condition func(in any) bool, ifTrue *Work, ifFalse *Work) *Wor
 	}))
 }
 
+// Execute multiple blocks of work in parallel. The result function will combine all results into a single result.
 func (w *Work) Parallel(result func([]any) any, work ...*Work) *Work {
 	return w.Next(Wrap(func(in any) any {
 		var outputs []any
@@ -75,6 +88,9 @@ func (w *Work) Parallel(result func([]any) any, work ...*Work) *Work {
 	}))
 }
 
+// Recursive method to run a block of work and then run the next block of work.
+// NOTE: This should remain internal because the recursive nature of this method
+// could have unintended consequences to a consumer of this package.
 func (w *Work) run(in any) any {
 	out := w.action(in)
 	if w.next != nil {
