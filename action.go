@@ -4,31 +4,16 @@ import (
 	"sync"
 )
 
-// TODO: add error to the Action signature?
+// TODO: add error to the Action signature and abort if error thrown?
 // A simple function definition with a single input and output.
 type Action func(any) any
 
-// Returns an action that does nothing and returns nil.
-func NoOp() Action {
+// Encapsulate a function with types into an action.
+func Do[T1 any, T2 any](action func(T1) T2) Action {
 	return func(in any) any {
-		return nil
-	}
-}
-
-// Wraps provided actions so that "action" is called first and then "next" is called.
-func Wrap(action Action, next Action) Action {
-	if action == nil && next == nil {
-		return NoOp()
-	}
-	if action == nil {
-		return next
-	}
-	if next == nil {
-		return action
-	}
-	return func(in any) any {
-		out := action(in)
-		return next(out)
+		input := in.(T1)
+		output := action(input)
+		return output
 	}
 }
 
@@ -46,12 +31,24 @@ func Sequential(actions ...Action) Action {
 	return combined
 }
 
-// Wrap a function with types into an action.
-func Do[T1 any, T2 any](action func(T1) T2) Action {
+// Execute multiple actions in parallel. The result function should combine all parallel results into a single result.
+func Parallel[T any](result func(in []any) T, actions ...Action) Action {
 	return func(in any) any {
-		input := in.(T1)
-		output := action(input)
-		return output
+		var outputs []any
+		var lock sync.Mutex
+		var wg sync.WaitGroup
+		for _, v := range actions {
+			wg.Add(1)
+			go func(in any) {
+				defer wg.Done()
+				out := v(in)
+				lock.Lock()
+				defer lock.Unlock()
+				outputs = append(outputs, out)
+			}(in)
+		}
+		wg.Wait()
+		return result(outputs)
 	}
 }
 
@@ -74,23 +71,26 @@ func If[T any](condition func(in T) bool, ifTrue Action, ifFalse Action) Action 
 	}
 }
 
-// Execute multiple actions in parallel. The result function will combine all results into a single result.
-func Parallel[T any](result func(in []any) T, actions ...Action) Action {
+// Returns an action that does nothing and returns nil.
+func NoOp() Action {
 	return func(in any) any {
-		var outputs []any
-		var lock sync.Mutex
-		var wg sync.WaitGroup
-		for _, v := range actions {
-			wg.Add(1)
-			go func(in any) {
-				defer wg.Done()
-				out := v(in)
-				lock.Lock()
-				defer lock.Unlock()
-				outputs = append(outputs, out)
-			}(in)
-		}
-		wg.Wait()
-		return result(outputs)
+		return nil
+	}
+}
+
+// Wraps provided actions so that "action" is called first and then "next" is called.
+func Wrap(action Action, next Action) Action {
+	if action == nil && next == nil {
+		return NoOp()
+	}
+	if action == nil {
+		return next
+	}
+	if next == nil {
+		return action
+	}
+	return func(in any) any {
+		out := action(in)
+		return next(out)
 	}
 }
