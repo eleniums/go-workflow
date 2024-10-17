@@ -63,7 +63,7 @@ func Test_Unit_Action_Wrap(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// act
-			combo := Wrap(tc.action, tc.next)
+			combo := wrap(tc.action, tc.next)
 
 			// assert
 			assert.Equal(t, tc.expected, combo(tc.in))
@@ -269,7 +269,7 @@ func Test_Unit_Action_AllActions(t *testing.T) {
 				),
 			)),
 		If(isOdd, // in == 14 (false)
-			Do(add1), // skipped
+			NoOp(),   // skipped
 			Do(add2), // 14 + 2 == 16
 		),
 	)
