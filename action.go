@@ -33,7 +33,7 @@ func Wrap(action Action, next Action) Action {
 }
 
 // Combines multiple actions into a single action that will execute based on the order the actions were passed.
-func Combine(actions ...Action) Action {
+func Sequential(actions ...Action) Action {
 	if len(actions) == 0 {
 		return NoOp()
 	}

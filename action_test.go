@@ -112,7 +112,7 @@ func Test_Unit_Action_Combine(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// act
-			combo := Combine(tc.actions...)
+			combo := Sequential(tc.actions...)
 
 			// assert
 			assert.Equal(t, tc.expected, combo(tc.in))
@@ -255,12 +255,12 @@ func Test_Unit_Action_AllActions(t *testing.T) {
 		return total
 	}
 
-	action := Combine(
+	action := Sequential(
 		Do(add1), // 1 + 1 == 2
 		Parallel(sum, // in == 2, result == 3 + 4 + 7 == 14
 			Do(add1), // 2 + 1 == 3
 			Do(add2), // 2 + 2 == 4
-			Combine( // in == 2
+			Sequential( // in == 2
 				Do(add1), // 2 + 1 == 3
 				Do(add2), // 3 + 2 == 5
 				If(isOdd, // in == 5 (true)
