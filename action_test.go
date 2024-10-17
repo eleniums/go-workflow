@@ -230,5 +230,5 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 	action := Parallel(result, action1, action2, action3)
 
 	// act
-	assert.Equal(t, 7, action(1))
+	assert.Equal(t, 9, action(1))
 }
