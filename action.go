@@ -4,16 +4,20 @@ import (
 	"sync"
 )
 
-// TODO: add error to the Action signature and abort if error thrown?
 // A simple function definition with a single input and output.
-type Action func(any) any
+type Action func(any) (any, error)
+
+// Contains an action result and associated error, if any.
+type Result struct {
+	Out any
+	Err error
+}
 
 // Encapsulate a function with types into an action.
-func Do[T1 any, T2 any](action func(T1) T2) Action {
-	return func(in any) any {
+func Do[T1 any, T2 any](action func(T1) (T2, error)) Action {
+	return func(in any) (any, error) {
 		input := in.(T1)
-		output := action(input)
-		return output
+		return action(input)
 	}
 }
 
@@ -23,28 +27,31 @@ func Sequential(actions ...Action) Action {
 		return NoOp()
 	}
 
-	combined := actions[0]
+	sequential := actions[0]
 	for i := 1; i < len(actions); i++ {
-		combined = wrap(combined, actions[i])
+		sequential = wrap(sequential, actions[i])
 	}
 
-	return combined
+	return sequential
 }
 
 // Execute multiple actions in parallel. The result function should combine all parallel results into a single result.
-func Parallel[T any](result func(in []any) T, actions ...Action) Action {
-	return func(in any) any {
-		var outputs []any
+func Parallel[T any](result func(in []Result) (T, error), actions ...Action) Action {
+	return func(in any) (any, error) {
+		var outputs []Result
 		var lock sync.Mutex
 		var wg sync.WaitGroup
 		for _, v := range actions {
 			wg.Add(1)
 			go func(in any) {
 				defer wg.Done()
-				out := v(in)
+				out, err := v(in)
 				lock.Lock()
 				defer lock.Unlock()
-				outputs = append(outputs, out)
+				outputs = append(outputs, Result{
+					Out: out,
+					Err: err,
+				})
 			}(in)
 		}
 		wg.Wait()
@@ -53,28 +60,30 @@ func Parallel[T any](result func(in []any) T, actions ...Action) Action {
 }
 
 // Conditionally execute another action. Only one action will be executed.
-func If[T any](condition func(in T) bool, ifTrue Action, ifFalse Action) Action {
+func If[T any](condition func(in T) (bool, error), ifTrue Action, ifFalse Action) Action {
 	// all functions must be valid
 	if condition == nil || ifTrue == nil || ifFalse == nil {
 		return NoOp()
 	}
 
-	return func(in any) any {
+	return func(in any) (any, error) {
 		input := in.(T)
-		var out any
-		if condition(input) {
-			out = ifTrue(in)
-		} else {
-			out = ifFalse(in)
+		condition, err := condition(input)
+		if err != nil {
+			return nil, err
 		}
-		return out
+		if condition {
+			return ifTrue(in)
+		} else {
+			return ifFalse(in)
+		}
 	}
 }
 
 // Returns an action that does nothing and returns nil.
 func NoOp() Action {
-	return func(in any) any {
-		return nil
+	return func(in any) (any, error) {
+		return nil, nil
 	}
 }
 
@@ -89,8 +98,11 @@ func wrap(action Action, next Action) Action {
 	if next == nil {
 		return action
 	}
-	return func(in any) any {
-		out := action(in)
+	return func(in any) (any, error) {
+		out, err := action(in)
+		if err != nil {
+			return out, err
+		}
 		return next(out)
 	}
 }
