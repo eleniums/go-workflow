@@ -25,7 +25,7 @@ func Sequential(actions ...Action) Action {
 
 	combined := actions[0]
 	for i := 1; i < len(actions); i++ {
-		combined = Wrap(combined, actions[i])
+		combined = wrap(combined, actions[i])
 	}
 
 	return combined
@@ -79,7 +79,7 @@ func NoOp() Action {
 }
 
 // Wraps provided actions so that "action" is called first and then "next" is called.
-func Wrap(action Action, next Action) Action {
+func wrap(action Action, next Action) Action {
 	if action == nil && next == nil {
 		return NoOp()
 	}
