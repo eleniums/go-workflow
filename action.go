@@ -75,7 +75,7 @@ func If[T any](condition func(in T) bool, ifTrue Action, ifFalse Action) Action 
 }
 
 // Execute multiple actions in parallel. The result function will combine all results into a single result.
-func Parallel[T any](result func([]any) T, actions ...Action) Action {
+func Parallel[T any](result func(in []any) T, actions ...Action) Action {
 	return func(in any) any {
 		var outputs []any
 		var lock sync.Mutex

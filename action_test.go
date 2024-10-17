@@ -141,7 +141,7 @@ func Test_Unit_Action_If(t *testing.T) {
 
 	testCases := []struct {
 		name      string
-		condition func(in any) bool
+		condition func(in int) bool
 		ifTrue    Action
 		ifFalse   Action
 		in        any
@@ -157,7 +157,7 @@ func Test_Unit_Action_If(t *testing.T) {
 		},
 		{
 			name: "nil true",
-			condition: func(in any) bool {
+			condition: func(in int) bool {
 				return true
 			},
 			ifTrue:   nil,
@@ -167,7 +167,7 @@ func Test_Unit_Action_If(t *testing.T) {
 		},
 		{
 			name: "nil false",
-			condition: func(in any) bool {
+			condition: func(in int) bool {
 				return true
 			},
 			ifTrue:   action1,
@@ -177,7 +177,7 @@ func Test_Unit_Action_If(t *testing.T) {
 		},
 		{
 			name: "true",
-			condition: func(in any) bool {
+			condition: func(in int) bool {
 				return true
 			},
 			ifTrue:   action1,
@@ -187,7 +187,7 @@ func Test_Unit_Action_If(t *testing.T) {
 		},
 		{
 			name: "false",
-			condition: func(in any) bool {
+			condition: func(in int) bool {
 				return false
 			},
 			ifTrue:   action1,
@@ -208,64 +208,27 @@ func Test_Unit_Action_If(t *testing.T) {
 	}
 }
 
-// func Test_Unit_MultipleNext(t *testing.T) {
-// 	// arrange
-// 	workflow := Create().Do(func(in int) int {
-// 		return in * 5
-// 	}).Next(Do(func(in int) int {
-// 		return in + 2
-// 	})).Next(Do(func(in int) int {
-// 		return in - 1
-// 	}))
+func Test_Unit_Action_Parallel(t *testing.T) {
+	// arrange
+	action1 := Do(func(in int) int {
+		return in + 1
+	})
+	action2 := Do(func(in int) int {
+		return in + 2
+	})
+	action3 := Do(func(in int) int {
+		return in + 3
+	})
+	result := func(in []any) int {
+		total := 0
+		for _, v := range in {
+			total += v.(int)
+		}
+		return total
+	}
 
-// 	// act
-// 	assert.Equal(t, 6, workflow.Start(1))
-// 	assert.Equal(t, 11, workflow.Start(2))
-// 	assert.Equal(t, 16, workflow.Start(3))
-// }
+	action := Parallel(result, action1, action2, action3)
 
-// func Test_Unit_If(t *testing.T) {
-// 	// arrange
-// 	workflow := Create().Do(func(in int) int {
-// 		return in * 5
-// 	}).Next(Do(func(in int) int {
-// 		return in + 2
-// 	})).If(func(in any) bool {
-// 		v := in.(int)
-// 		return v%2 == 1
-// 	}, Create().Do(func(in int) int {
-// 		return in + 4
-// 	})), Create().Do(func(in int) int {
-// 		return in - 4
-// 	})
-
-// 	// act
-// 	assert.Equal(t, 11, workflow.Start(1))
-// 	assert.Equal(t, 8, workflow.Start(2))
-// 	assert.Equal(t, 21, workflow.Start(3))
-// }
-
-// func Test_Unit_Parallel(t *testing.T) {
-// 	// arrange
-// 	workflow := Create().Do(func(in int) int {
-// 		return in * 5
-// 	}).Parallel(func(results []any) any {
-// 		total := 0
-// 		for _, v := range results {
-// 			total += v.(int)
-// 		}
-// 		return total
-// 	}, Create().Do(func(in int) int {
-// 		return in + 2
-// 	})), Create().Do(func(in int) int {
-// 		return in - 1
-// 	}))).Next(Do(func(total int) int {
-// 		fmt.Println(total)
-// 		return total
-// 	}))
-
-// 	// act
-// 	assert.Equal(t, 11, workflow.Start(1))
-// 	assert.Equal(t, 21, workflow.Start(2))
-// 	assert.Equal(t, 31, workflow.Start(3))
-// }
+	// act
+	assert.Equal(t, 7, action(1))
+}
