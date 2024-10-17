@@ -56,3 +56,7 @@ For further examples, look at the unit tests.
 - `Parallel`: Perform some actions in parallel.
 - `If`: Conditionally perform one action or another.
 - `NoOp`: Does nothing. Useful as a dead end.
+
+## TODO
+- [ ] Add Catch function to handle an error.
+- [ ] Add Retry function to add retry functionality. Perhaps use Catch function internally.
