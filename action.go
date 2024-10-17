@@ -7,7 +7,7 @@ import (
 // A simple function definition with a single input and output.
 type Action func(any) (any, error)
 
-// Contains an action result and associated error, if any.
+// Contains an action output and associated error, if any.
 type Result struct {
 	Out any
 	Err error
@@ -35,8 +35,8 @@ func Sequential(actions ...Action) Action {
 	return sequential
 }
 
-// Execute multiple actions in parallel. The result function should combine all parallel results into a single result.
-func Parallel[T any](result func(in []Result) (T, error), actions ...Action) Action {
+// Execute multiple actions in parallel. The reduce function should combine all parallel results into a single result.
+func Parallel[T any](reduce func(in []Result) (T, error), actions ...Action) Action {
 	return func(in any) (any, error) {
 		var outputs []Result
 		var lock sync.Mutex
@@ -55,7 +55,7 @@ func Parallel[T any](result func(in []Result) (T, error), actions ...Action) Act
 			}(in)
 		}
 		wg.Wait()
-		return result(outputs)
+		return reduce(outputs)
 	}
 }
 

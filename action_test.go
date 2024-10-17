@@ -335,7 +335,7 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 		return 5, actionErr
 	})
 
-	result := func(in []Result) (int, error) {
+	reduce := func(in []Result) (int, error) {
 		total := 0
 		for _, v := range in {
 			if v.Err != nil {
@@ -348,7 +348,7 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		result   func(in []Result) (int, error)
+		reduce   func(in []Result) (int, error)
 		actions  []Action
 		in       any
 		expected any
@@ -356,7 +356,7 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 	}{
 		{
 			name:     "success",
-			result:   result,
+			reduce:   reduce,
 			actions:  []Action{action1, action2, action3},
 			in:       1,
 			expected: 9,
@@ -364,7 +364,7 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 		},
 		{
 			name:     "no actions",
-			result:   result,
+			reduce:   reduce,
 			actions:  nil,
 			in:       1,
 			expected: 0,
@@ -372,7 +372,7 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 		},
 		{
 			name:     "action error",
-			result:   result,
+			reduce:   reduce,
 			actions:  []Action{action1, actionWithErr, action3},
 			in:       1,
 			expected: -1,
@@ -383,7 +383,7 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// act
-			action := Parallel(tc.result, tc.actions...)
+			action := Parallel(tc.reduce, tc.actions...)
 			out, err := action(1)
 
 			// assert
