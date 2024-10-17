@@ -232,3 +232,48 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 	// act
 	assert.Equal(t, 9, action(1))
 }
+
+func Test_Unit_Action_AllActions(t *testing.T) {
+	// arrange
+	add1 := func(in int) int {
+		return in + 1
+	}
+	add2 := func(in int) int {
+		return in + 2
+	}
+	add3 := func(in int) int {
+		return in + 3
+	}
+	isOdd := func(in int) bool {
+		return in%2 == 1
+	}
+	sum := func(in []any) int {
+		total := 0
+		for _, v := range in {
+			total += v.(int)
+		}
+		return total
+	}
+
+	action := Combine(
+		Do(add1), // 1 + 1 == 2
+		Parallel(sum, // in == 2, result == 3 + 4 + 7 == 14
+			Do(add1), // 2 + 1 == 3
+			Do(add2), // 2 + 2 == 4
+			Combine( // in == 2
+				Do(add1), // 2 + 1 == 3
+				Do(add2), // 3 + 2 == 5
+				If(isOdd, // in == 5 (true)
+					Do(add2), // 5 + 2 == 7
+					Do(add3), // skipped
+				),
+			)),
+		If(isOdd, // in == 14 (false)
+			Do(add1), // skipped
+			Do(add2), // 14 + 2 == 16
+		),
+	)
+
+	// act
+	assert.Equal(t, 16, action(1))
+}
