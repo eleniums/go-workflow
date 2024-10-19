@@ -80,6 +80,22 @@ func If[T any](condition func(in T) (bool, error), ifTrue Action, ifFalse Action
 	}
 }
 
+// Executes an action and calls the handle function if an error occurs.
+func Catch(action Action, handle Action) Action {
+	return func(in any) (any, error) {
+		out, err := action(in)
+		if err != nil {
+			return handle(in)
+		}
+		return out, nil
+	}
+}
+
+func Retry() Action {
+	// TODO: implement retry function
+	return nil
+}
+
 // Returns an action that does nothing and returns nil.
 func NoOp() Action {
 	return func(in any) (any, error) {
