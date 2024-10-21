@@ -85,7 +85,7 @@ func Catch(action Action, handle Action) Action {
 	return func(in any) (any, error) {
 		out, err := action(in)
 		if err != nil {
-			return handle(in)
+			return handle(out)
 		}
 		return out, nil
 	}
