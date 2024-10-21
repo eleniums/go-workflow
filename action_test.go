@@ -398,16 +398,22 @@ func Test_Unit_Action_Catch(t *testing.T) {
 	action := Do(func(in int) (int, error) {
 		return in + 1, nil
 	})
-
 	actionErr := errors.New("test error")
 	actionWithErr := Do(func(in int) (int, error) {
 		return 5, actionErr
 	})
 
+	handle := func(in any, err error) (any, error) {
+		return 1, nil
+	}
+	handleWithErr := func(in any, err error) (any, error) {
+		return 6, err
+	}
+
 	testCases := []struct {
 		name     string
 		action   Action
-		handle   Action
+		handle   func(any, error) (any, error)
 		in       any
 		expected any
 		err      error
@@ -415,7 +421,7 @@ func Test_Unit_Action_Catch(t *testing.T) {
 		{
 			name:     "action success",
 			action:   action,
-			handle:   actionWithErr,
+			handle:   handleWithErr,
 			in:       1,
 			expected: 2,
 			err:      nil,
@@ -423,17 +429,17 @@ func Test_Unit_Action_Catch(t *testing.T) {
 		{
 			name:     "handle success",
 			action:   actionWithErr,
-			handle:   action,
+			handle:   handle,
 			in:       1,
-			expected: 6,
+			expected: 1,
 			err:      nil,
 		},
 		{
 			name:     "handle error",
 			action:   actionWithErr,
-			handle:   actionWithErr,
+			handle:   handleWithErr,
 			in:       1,
-			expected: 5,
+			expected: 6,
 			err:      actionErr,
 		},
 	}

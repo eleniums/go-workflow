@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"sync"
+	"time"
 )
 
 // A simple function definition with a single input and output.
@@ -81,18 +82,26 @@ func If[T any](condition func(in T) (bool, error), ifTrue Action, ifFalse Action
 }
 
 // Executes an action and calls the handle function if an error occurs.
-func Catch(action Action, handle Action) Action {
+func Catch(action Action, handle func(any, error) (any, error)) Action {
 	return func(in any) (any, error) {
 		out, err := action(in)
 		if err != nil {
-			return handle(out)
+			return handle(out, err)
 		}
 		return out, nil
 	}
 }
 
-func Retry() Action {
-	// TODO: implement retry function
+// Executes an action and then, regardless of whether an error occurred, calls the finally function.
+func Finally(action Action, finally func(any, error) (any, error)) Action {
+	return func(in any) (any, error) {
+		out, err := action(in)
+		return finally(out, err)
+	}
+}
+
+func Retry(action Action, shouldRetry func(err error) bool, maxRetries int, maxDelay time.Duration) Action {
+	// TODO: implement retry function - exponential backoff with jitter, configurable retries and delay
 	return nil
 }
 
