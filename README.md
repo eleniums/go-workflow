@@ -56,6 +56,7 @@ For further examples, look at the unit tests.
 - `Parallel`: Perform some actions in parallel.
 - `If`: Conditionally perform one action or another.
 - `NoOp`: Does nothing. Useful as a dead end.
+- `Catch`: Handle an error instead of terminating the workflow.
 
 ## TODO
 - [ ] Add Catch function to handle an error.

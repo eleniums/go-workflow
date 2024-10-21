@@ -393,6 +393,64 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 	}
 }
 
+func Test_Unit_Action_Catch(t *testing.T) {
+	// arrange
+	action := Do(func(in int) (int, error) {
+		return in + 1, nil
+	})
+
+	actionErr := errors.New("test error")
+	actionWithErr := Do(func(in int) (int, error) {
+		return 5, actionErr
+	})
+
+	testCases := []struct {
+		name     string
+		action   Action
+		handle   Action
+		in       any
+		expected any
+		err      error
+	}{
+		{
+			name:     "action success",
+			action:   action,
+			handle:   actionWithErr,
+			in:       1,
+			expected: 2,
+			err:      nil,
+		},
+		{
+			name:     "handle success",
+			action:   actionWithErr,
+			handle:   action,
+			in:       1,
+			expected: 6,
+			err:      nil,
+		},
+		{
+			name:     "handle error",
+			action:   actionWithErr,
+			handle:   actionWithErr,
+			in:       1,
+			expected: 5,
+			err:      actionErr,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// act
+			action := Catch(tc.action, tc.handle)
+			out, err := action(tc.in)
+
+			// assert w
+			assert.Equal(t, tc.err, err)
+			assert.Equal(t, tc.expected, out)
+		})
+	}
+}
+
 func Test_Unit_Action_AllActions(t *testing.T) {
 	// arrange
 	add1 := func(in int) (int, error) {
