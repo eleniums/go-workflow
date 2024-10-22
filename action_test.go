@@ -421,7 +421,7 @@ func Test_Unit_Action_Catch(t *testing.T) {
 		{
 			name:     "action success",
 			action:   action,
-			handle:   handleWithErr,
+			handle:   handle,
 			in:       1,
 			expected: 2,
 			err:      nil,
