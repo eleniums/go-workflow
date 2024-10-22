@@ -457,6 +457,70 @@ func Test_Unit_Action_Catch(t *testing.T) {
 	}
 }
 
+func Test_Unit_Action_Finally(t *testing.T) {
+	// arrange
+	action := Do(func(in int) (int, error) {
+		return in + 1, nil
+	})
+	actionErr := errors.New("test error")
+	actionWithErr := Do(func(in int) (int, error) {
+		return 5, actionErr
+	})
+
+	finally := func(in any, err error) (any, error) {
+		return in.(int) + 2, nil
+	}
+	finallyWithErr := func(in any, err error) (any, error) {
+		return 6, err
+	}
+
+	testCases := []struct {
+		name     string
+		action   Action
+		finally  func(any, error) (any, error)
+		in       any
+		expected any
+		err      error
+	}{
+		{
+			name:     "action success",
+			action:   action,
+			finally:  finally,
+			in:       1,
+			expected: 4,
+			err:      nil,
+		},
+		{
+			name:     "action error",
+			action:   actionWithErr,
+			finally:  finally,
+			in:       1,
+			expected: 7,
+			err:      nil,
+		},
+		{
+			name:     "finally error",
+			action:   actionWithErr,
+			finally:  finallyWithErr,
+			in:       1,
+			expected: 6,
+			err:      actionErr,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// act
+			action := Finally(tc.action, tc.finally)
+			out, err := action(tc.in)
+
+			// assert w
+			assert.Equal(t, tc.err, err)
+			assert.Equal(t, tc.expected, out)
+		})
+	}
+}
+
 func Test_Unit_Action_AllActions(t *testing.T) {
 	// arrange
 	add1 := func(in int) (int, error) {
