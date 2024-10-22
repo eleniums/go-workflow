@@ -57,6 +57,7 @@ For further examples, look at the unit tests.
 - `If`: Conditionally perform one action or another.
 - `NoOp`: Does nothing. Useful as a dead end.
 - `Catch`: Handle an error instead of terminating the workflow.
+- `Finally`: Call a follow-up function after an action completes.
 
 ## TODO
 - [ ] Add Catch function to handle an error.
