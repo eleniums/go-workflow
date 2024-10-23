@@ -100,9 +100,34 @@ func Finally(action Action, finally func(any, error) (any, error)) Action {
 	}
 }
 
-func Retry(action Action, shouldRetry func(err error) bool, maxRetries int, maxDelay time.Duration) Action {
-	// TODO: implement retry function - exponential backoff with jitter, configurable retries and delay
-	return nil
+func Retry(action Action, shouldRetry func(out any, err error) bool, maxRetries int, maxDelay time.Duration) Action {
+	return func(in any) (any, error) {
+		// calculate starting delay based on the max possible delay
+		delay := maxDelay / (1 << maxRetries)
+
+		// first loop is the initial try and does not count as a retry
+		for retry := 0; retry <= maxRetries; retry++ {
+			out, err := action(in)
+			if err != nil && retry >= maxRetries {
+				// already retried the maximum number of times, return error
+				return out, err
+			} else if err == nil {
+				// action was successful, return immediately
+				return out, nil
+			} else if shouldRetry != nil && !shouldRetry(out, err) {
+				// determined no retry should be allowed
+				return out, err
+			}
+
+			// delay before next retry
+			time.Sleep(delay)
+
+			// delay increases exponentially
+			delay *= 2
+		}
+
+		return nil, nil
+	}
 }
 
 // Returns an action that does nothing and returns nil.
