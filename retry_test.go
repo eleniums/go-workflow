@@ -25,85 +25,95 @@ func Test_Unit_Action_Retry(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name        string
-		action      Action
-		shouldRetry func(out any, err error) bool
-		maxRetries  int
-		maxDelay    time.Duration
-		in          any
-		expected    any
-		err         error
+		name     string
+		action   Action
+		opts     *RetryOptions
+		in       any
+		expected any
+		err      error
 	}{
 		{
-			name:        "action success",
-			action:      action,
-			shouldRetry: nil,
-			maxRetries:  0,
-			maxDelay:    0,
-			in:          1,
-			expected:    2,
-			err:         nil,
+			name:   "action success",
+			action: action,
+			opts: &RetryOptions{
+				ShouldRetry: nil,
+				MaxRetries:  0,
+				MaxDelay:    0,
+			},
+			in:       1,
+			expected: 2,
+			err:      nil,
 		},
 		{
-			name:        "action error with no retries",
-			action:      actionWithNumErrs(1),
-			shouldRetry: nil,
-			maxRetries:  0,
-			maxDelay:    time.Millisecond * 10,
-			in:          1,
-			expected:    5,
-			err:         actionErr,
+			name:   "action error with no retries",
+			action: actionWithNumErrs(1),
+			opts: &RetryOptions{
+				ShouldRetry: nil,
+				MaxRetries:  0,
+				MaxDelay:    time.Millisecond * 10,
+			},
+			in:       1,
+			expected: 5,
+			err:      actionErr,
 		},
 		{
-			name:        "action error with no delay",
-			action:      actionWithNumErrs(4),
-			shouldRetry: nil,
-			maxRetries:  3,
-			maxDelay:    0,
-			in:          1,
-			expected:    5,
-			err:         actionErr,
+			name:   "action error with no delay",
+			action: actionWithNumErrs(4),
+			opts: &RetryOptions{
+				ShouldRetry: nil,
+				MaxRetries:  3,
+				MaxDelay:    0,
+			},
+			in:       1,
+			expected: 5,
+			err:      actionErr,
 		},
 		{
-			name:        "action error retries and then succeeds",
-			action:      actionWithNumErrs(3),
-			shouldRetry: nil,
-			maxRetries:  3,
-			maxDelay:    time.Millisecond * 10,
-			in:          1,
-			expected:    3,
-			err:         nil,
+			name:   "action error retries and then succeeds",
+			action: actionWithNumErrs(3),
+			opts: &RetryOptions{
+				ShouldRetry: nil,
+				MaxRetries:  3,
+				MaxDelay:    time.Millisecond * 10,
+			},
+			in:       1,
+			expected: 3,
+			err:      nil,
 		},
 		{
 			name:   "action error should not retry",
 			action: actionWithNumErrs(3),
-			shouldRetry: func(out any, err error) bool {
-				return false
+			opts: &RetryOptions{
+				ShouldRetry: func(out any, err error) bool {
+					return false
+				},
+				MaxRetries: 3,
+				MaxDelay:   time.Millisecond * 10,
 			},
-			maxRetries: 3,
-			maxDelay:   time.Millisecond * 10,
-			in:         1,
-			expected:   5,
-			err:        actionErr,
+			in:       1,
+			expected: 5,
+			err:      actionErr,
 		},
 		{
 			name:   "action error should retry",
 			action: actionWithNumErrs(3),
-			shouldRetry: func(out any, err error) bool {
-				return true
+			opts: &RetryOptions{
+				ShouldRetry: func(out any, err error) bool {
+					return true
+				},
+				MaxRetries: 3,
+				MaxDelay:   time.Millisecond * 10,
 			},
-			maxRetries: 3,
-			maxDelay:   time.Millisecond * 10,
-			in:         1,
-			expected:   3,
-			err:        nil,
+			in:       1,
+			expected: 3,
+			err:      nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// act
-			action := Retry(tc.action, tc.shouldRetry, tc.maxRetries, tc.maxDelay)
+			action := Retry(tc.action, tc.opts)
 			out, err := action(tc.in)
 
 			// assert w
