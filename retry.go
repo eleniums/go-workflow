@@ -5,9 +5,22 @@ import (
 )
 
 type RetryOptions struct {
-	MaxRetries  int
-	MaxDelay    time.Duration
+	// Maximum number of retries before error is returned.
+	MaxRetries int
+
+	// Initial delay between the first failed attempt and the first retry. Will be adjusted according to the backoff strategy for future retries.
+	InitialDelay time.Duration
+
+	// Maximum possible delay between retries.
+	MaxDelay time.Duration
+
+	// Defines the maximum range of randomness to add to the delay between retries, i.e. jitter of 200 ms with a delay of 500 ms means the range for the actual delay is 300 ms to 700 ms. This helps prevent the thundering herd issue that can happen when a large number of concurrent transactions retry at the exact same time.
+	Jitter time.Duration
+
+	// Optional function to determine if a retry should happen. This function is always called, even if no error has occurred.
 	ShouldRetry func(out any, err error) bool
+
+	// BackoffStrategy // TODO: should I bother with this now?
 }
 
 func Retry(action Action, opts *RetryOptions) Action {
