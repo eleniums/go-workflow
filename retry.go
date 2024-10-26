@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Options for configuring a retry action.
 type RetryOptions struct {
 	// Maximum number of retries before error is returned. Can set to 0 for no retries.
 	MaxRetries int
@@ -25,6 +26,7 @@ type RetryOptions struct {
 	BackoffStrategy func(delay time.Duration) time.Duration
 }
 
+// Retry an action if it returns an error.
 func Retry(action Action, opts *RetryOptions) Action {
 	if opts == nil {
 		// set some defaults if no options provided
