@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"math/rand"
 	"time"
 )
 
@@ -25,17 +26,27 @@ type RetryOptions struct {
 
 func Retry(action Action, opts *RetryOptions) Action {
 	if opts == nil {
-		opts = &RetryOptions{
-			MaxRetries:  3,
-			MaxDelay:    time.Second * 30,
-			ShouldRetry: nil,
-		}
+		opts = &RetryOptions{}
+	}
+
+	// set default values
+	if opts.MaxRetries <= 0 {
+		// default to no retries, an error will return immediately
+		opts.MaxRetries = 0
+	}
+	if opts.InitialDelay <= 0 {
+		// default to no delay between retries
+		opts.InitialDelay = 0
+	}
+	if opts.MaxDelay <= 0 {
+		// default to no delay between retries
+		opts.MaxDelay = 0
 	}
 
 	return func(in any) (any, error) {
 		// calculate starting delay based on the max possible delay
 		// max delay divided by max retries to the power of 2
-		delay := opts.MaxDelay / (1 << opts.MaxRetries)
+		delay := opts.InitialDelay
 
 		// first loop is the initial try and does not count as a retry
 		for retry := 0; retry <= opts.MaxRetries; retry++ {
@@ -51,16 +62,23 @@ func Retry(action Action, opts *RetryOptions) Action {
 				return out, err
 			}
 
-			// TODO: add random jitter to delay
-			// TODO: should jitter be configurable?
-
 			// delay before next retry
-			time.Sleep(delay)
+			time.Sleep(randDuration(delay-opts.Jitter, delay+opts.Jitter))
 
 			// delay increases exponentially
 			delay *= 2
+
+			// respect max delay if set
+			if opts.MaxDelay > 0 && delay > opts.MaxDelay {
+				delay = opts.MaxDelay
+			}
 		}
 
 		return nil, nil
 	}
+}
+
+// Returns a random time in the closed range [min, max].
+func randDuration(min time.Duration, max time.Duration) time.Duration {
+	return time.Duration(rand.Int63n(int64(max-min+1)) + int64(min))
 }
