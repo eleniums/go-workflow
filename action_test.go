@@ -3,6 +3,7 @@ package workflow
 import (
 	"errors"
 	"testing"
+	"time"
 
 	assert "github.com/stretchr/testify/require"
 )
@@ -543,28 +544,48 @@ func Test_Unit_Action_AllActions(t *testing.T) {
 		return total, nil
 	}
 
+	actionWithNumErrs := func(numErrs int) Action {
+		return func(in any) (any, error) {
+			if numErrs <= 0 {
+				return in.(int), nil
+			}
+			numErrs--
+			return in.(int) + 1, errors.New("test error")
+		}
+	}
+
 	// act
 	action := Sequential(
 		Do(add1), // 1 + 1 == 2
-		Parallel(sum, // in == 2, result == 3 + 4 + 7 == 14
+		Parallel(sum, // in == 2, result == 3 + 4 + 9 == 16
 			Do(add1), // 2 + 1 == 3
 			Do(add2), // 2 + 2 == 4
 			Sequential( // in == 2
-				Do(add1), // 2 + 1 == 3
-				Do(add2), // 3 + 2 == 5
-				If(isOdd, // in == 5 (true)
-					Do(add2), // 5 + 2 == 7
+				Finally(Do(add1), func(in any, err error) (any, error) {
+					return add2(in.(int)) // 3 + 2 == 5
+				}), // 2 + 1 == 3
+				Catch(actionWithNumErrs(1), func(in any, err error) (any, error) {
+					return add2(in.(int))
+				}), // 5 + 2 == 7
+				If(isOdd, // in == 7 (true)
+					Do(add2), // 7 + 2 == 9
 					Do(add3), // skipped
 				),
 			)),
-		If(isOdd, // in == 14 (false)
-			NoOp(),   // skipped
-			Do(add2), // 14 + 2 == 16
+		If(isOdd, // in == 16 (false)
+			NoOp(), // skipped
+			Retry(actionWithNumErrs(2), &RetryOptions{
+				MaxRetries:      3,
+				InitialDelay:    time.Millisecond * 10,
+				MaxDelay:        time.Millisecond * 30,
+				Jitter:          time.Millisecond * 5,
+				BackoffStrategy: BackoffStrategyExponential(),
+			}), // 16 + 1 + 1 == 18
 		),
 	)
 	out, err := action(1)
 
 	// assert
 	assert.NoError(t, err)
-	assert.Equal(t, 16, out)
+	assert.Equal(t, 18, out)
 }

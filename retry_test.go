@@ -15,7 +15,7 @@ func Test_Unit_Action_Retry(t *testing.T) {
 	})
 	actionErr := errors.New("test error")
 	actionWithNumErrs := func(numErrs int) Action {
-		return func(a any) (any, error) {
+		return func(in any) (any, error) {
 			if numErrs <= 0 {
 				return 3, nil
 			}
