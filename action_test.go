@@ -547,7 +547,7 @@ func Test_Unit_Action_AllActions(t *testing.T) {
 	actionWithNumErrs := func(numErrs int) Action {
 		return func(in any) (any, error) {
 			if numErrs <= 0 {
-				return in.(int), nil
+				return in.(int) + 2, nil
 			}
 			numErrs--
 			return in.(int) + 1, errors.New("test error")
@@ -557,7 +557,7 @@ func Test_Unit_Action_AllActions(t *testing.T) {
 	// act
 	action := Sequential(
 		Do(add1), // 1 + 1 == 2
-		Parallel(sum, // in == 2, result == 3 + 4 + 9 == 16
+		Parallel(sum, // in == 2, result == 3 + 4 + 11 == 18
 			Do(add1), // 2 + 1 == 3
 			Do(add2), // 2 + 2 == 4
 			Sequential( // in == 2
@@ -566,13 +566,13 @@ func Test_Unit_Action_AllActions(t *testing.T) {
 				}), // 2 + 1 == 3
 				Catch(actionWithNumErrs(1), func(in any, err error) (any, error) {
 					return add2(in.(int))
-				}), // 5 + 2 == 7
-				If(isOdd, // in == 7 (true)
-					Do(add2), // 7 + 2 == 9
+				}), // 5 + 2 + 2 == 9
+				If(isOdd, // in == 9 (true)
+					Do(add2), // 9 + 2 == 11
 					Do(add3), // skipped
 				),
 			)),
-		If(isOdd, // in == 16 (false)
+		If(isOdd, // in == 18 (false)
 			NoOp(), // skipped
 			Retry(actionWithNumErrs(2), &RetryOptions{
 				MaxRetries:      3,
@@ -580,12 +580,12 @@ func Test_Unit_Action_AllActions(t *testing.T) {
 				MaxDelay:        time.Millisecond * 30,
 				Jitter:          time.Millisecond * 5,
 				BackoffStrategy: BackoffStrategyExponential(),
-			}), // 16 + 1 + 1 == 18
+			}), // 18 + 2 == 20
 		),
 	)
 	out, err := action(1)
 
 	// assert
 	assert.NoError(t, err)
-	assert.Equal(t, 18, out)
+	assert.Equal(t, 20, out)
 }
