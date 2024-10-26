@@ -6,16 +6,16 @@ import (
 )
 
 type RetryOptions struct {
-	// Maximum number of retries before error is returned.
+	// Maximum number of retries before error is returned. Can set to 0 for no retries.
 	MaxRetries int
 
-	// Initial delay between the first failed attempt and the first retry. Will be adjusted according to the backoff strategy for future retries.
+	// Initial delay between the first failed attempt and the first retry. Will be adjusted according to the backoff strategy for future retries. Can set to 0 for no delay.
 	InitialDelay time.Duration
 
-	// Maximum possible delay between retries.
+	// Maximum possible delay between retries. Can set to 0 for no maximum delay.
 	MaxDelay time.Duration
 
-	// Defines the maximum range of randomness to add to the delay between retries, i.e. jitter of 200 ms with a delay of 500 ms means the range for the actual delay is 300 ms to 700 ms. This helps prevent the thundering herd issue that can happen when a large number of concurrent transactions retry at the exact same time.
+	// Defines the maximum range of randomness to add to the delay between retries, i.e. jitter of 200 ms with a delay of 500 ms means the range for the actual delay is 300 ms to 700 ms. This helps prevent the thundering herd issue that can happen when a large number of concurrent transactions retry at the exact same time. Can set to 0 for no jitter.
 	Jitter time.Duration
 
 	// Optional function to determine if a retry should happen. This function is always called, even if no error has occurred.
@@ -26,21 +26,13 @@ type RetryOptions struct {
 
 func Retry(action Action, opts *RetryOptions) Action {
 	if opts == nil {
-		opts = &RetryOptions{}
-	}
-
-	// set default values
-	if opts.MaxRetries <= 0 {
-		// default to no retries, an error will return immediately
-		opts.MaxRetries = 0
-	}
-	if opts.InitialDelay <= 0 {
-		// default to no delay between retries
-		opts.InitialDelay = 0
-	}
-	if opts.MaxDelay <= 0 {
-		// default to no delay between retries
-		opts.MaxDelay = 0
+		// set some defaults if no options provided
+		opts = &RetryOptions{
+			MaxRetries:   3,
+			InitialDelay: time.Millisecond * 200,
+			MaxDelay:     time.Second * 30,
+			Jitter:       time.Millisecond * 50,
+		}
 	}
 
 	return func(in any) (any, error) {
