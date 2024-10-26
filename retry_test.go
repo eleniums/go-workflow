@@ -108,6 +108,14 @@ func Test_Unit_Action_Retry(t *testing.T) {
 			expected: 3,
 			err:      nil,
 		},
+		{
+			name:     "default options",
+			action:   actionWithNumErrs(3),
+			opts:     nil,
+			in:       1,
+			expected: 3,
+			err:      nil,
+		},
 	}
 
 	for _, tc := range testCases {
