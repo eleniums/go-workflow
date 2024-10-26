@@ -3,6 +3,7 @@ package workflow
 import (
 	"errors"
 	"testing"
+	"time"
 
 	assert "github.com/stretchr/testify/require"
 )
@@ -393,6 +394,134 @@ func Test_Unit_Action_Parallel(t *testing.T) {
 	}
 }
 
+func Test_Unit_Action_Catch(t *testing.T) {
+	// arrange
+	action := Do(func(in int) (int, error) {
+		return in + 1, nil
+	})
+	actionErr := errors.New("test error")
+	actionWithErr := Do(func(in int) (int, error) {
+		return 5, actionErr
+	})
+
+	handle := func(in any, err error) (any, error) {
+		return 1, nil
+	}
+	handleWithErr := func(in any, err error) (any, error) {
+		return 6, err
+	}
+
+	testCases := []struct {
+		name     string
+		action   Action
+		handle   func(any, error) (any, error)
+		in       any
+		expected any
+		err      error
+	}{
+		{
+			name:     "action success",
+			action:   action,
+			handle:   handle,
+			in:       1,
+			expected: 2,
+			err:      nil,
+		},
+		{
+			name:     "handle success",
+			action:   actionWithErr,
+			handle:   handle,
+			in:       1,
+			expected: 1,
+			err:      nil,
+		},
+		{
+			name:     "handle error",
+			action:   actionWithErr,
+			handle:   handleWithErr,
+			in:       1,
+			expected: 6,
+			err:      actionErr,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// act
+			action := Catch(tc.action, tc.handle)
+			out, err := action(tc.in)
+
+			// assert w
+			assert.Equal(t, tc.err, err)
+			assert.Equal(t, tc.expected, out)
+		})
+	}
+}
+
+func Test_Unit_Action_Finally(t *testing.T) {
+	// arrange
+	action := Do(func(in int) (int, error) {
+		return in + 1, nil
+	})
+	actionErr := errors.New("test error")
+	actionWithErr := Do(func(in int) (int, error) {
+		return 5, actionErr
+	})
+
+	finally := func(in any, err error) (any, error) {
+		return in.(int) + 2, nil
+	}
+	finallyWithErr := func(in any, err error) (any, error) {
+		return 6, err
+	}
+
+	testCases := []struct {
+		name     string
+		action   Action
+		finally  func(any, error) (any, error)
+		in       any
+		expected any
+		err      error
+	}{
+		{
+			name:     "action success",
+			action:   action,
+			finally:  finally,
+			in:       1,
+			expected: 4,
+			err:      nil,
+		},
+		{
+			name:     "action error",
+			action:   actionWithErr,
+			finally:  finally,
+			in:       1,
+			expected: 7,
+			err:      nil,
+		},
+		{
+			name:     "finally error",
+			action:   actionWithErr,
+			finally:  finallyWithErr,
+			in:       1,
+			expected: 6,
+			err:      actionErr,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// act
+			action := Finally(tc.action, tc.finally)
+			out, err := action(tc.in)
+
+			// assert w
+			assert.Equal(t, tc.err, err)
+			assert.Equal(t, tc.expected, out)
+		})
+	}
+}
+
 func Test_Unit_Action_AllActions(t *testing.T) {
 	// arrange
 	add1 := func(in int) (int, error) {
@@ -415,28 +544,48 @@ func Test_Unit_Action_AllActions(t *testing.T) {
 		return total, nil
 	}
 
+	actionWithNumErrs := func(numErrs int) Action {
+		return func(in any) (any, error) {
+			if numErrs <= 0 {
+				return in.(int) + 2, nil
+			}
+			numErrs--
+			return in.(int) + 1, errors.New("test error")
+		}
+	}
+
 	// act
 	action := Sequential(
 		Do(add1), // 1 + 1 == 2
-		Parallel(sum, // in == 2, result == 3 + 4 + 7 == 14
+		Parallel(sum, // in == 2, result == 3 + 4 + 11 == 18
 			Do(add1), // 2 + 1 == 3
 			Do(add2), // 2 + 2 == 4
 			Sequential( // in == 2
-				Do(add1), // 2 + 1 == 3
-				Do(add2), // 3 + 2 == 5
-				If(isOdd, // in == 5 (true)
-					Do(add2), // 5 + 2 == 7
+				Finally(Do(add1), func(in any, err error) (any, error) {
+					return add2(in.(int)) // 3 + 2 == 5
+				}), // 2 + 1 == 3
+				Catch(actionWithNumErrs(1), func(in any, err error) (any, error) {
+					return add2(in.(int))
+				}), // 5 + 2 + 2 == 9
+				If(isOdd, // in == 9 (true)
+					Do(add2), // 9 + 2 == 11
 					Do(add3), // skipped
 				),
 			)),
-		If(isOdd, // in == 14 (false)
-			NoOp(),   // skipped
-			Do(add2), // 14 + 2 == 16
+		If(isOdd, // in == 18 (false)
+			NoOp(), // skipped
+			Retry(actionWithNumErrs(2), &RetryOptions{
+				MaxRetries:      3,
+				InitialDelay:    time.Millisecond * 10,
+				MaxDelay:        time.Millisecond * 30,
+				Jitter:          time.Millisecond * 5,
+				BackoffStrategy: BackoffStrategyExponential(),
+			}), // 18 + 2 == 20
 		),
 	)
 	out, err := action(1)
 
 	// assert
 	assert.NoError(t, err)
-	assert.Equal(t, 16, out)
+	assert.Equal(t, 20, out)
 }
