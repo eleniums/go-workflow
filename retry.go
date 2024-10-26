@@ -21,23 +21,23 @@ type RetryOptions struct {
 	// Optional function to determine if a retry should happen. This function is always called, even if no error has occurred.
 	ShouldRetry func(out any, err error) bool
 
-	// BackoffStrategy // TODO: should I bother with this now?
+	// Optional function to determine backoff strategy. Can set to nil for no backoff.
+	BackoffStrategy func(delay time.Duration) time.Duration
 }
 
 func Retry(action Action, opts *RetryOptions) Action {
 	if opts == nil {
 		// set some defaults if no options provided
 		opts = &RetryOptions{
-			MaxRetries:   3,
-			InitialDelay: time.Millisecond * 200,
-			MaxDelay:     time.Second * 30,
-			Jitter:       time.Millisecond * 50,
+			MaxRetries:      3,
+			InitialDelay:    time.Millisecond * 200,
+			MaxDelay:        time.Second * 30,
+			Jitter:          time.Millisecond * 50,
+			BackoffStrategy: BackoffStrategyExponential(),
 		}
 	}
 
 	return func(in any) (any, error) {
-		// calculate starting delay based on the max possible delay
-		// max delay divided by max retries to the power of 2
 		delay := opts.InitialDelay
 
 		// first loop is the initial try and does not count as a retry
@@ -57,8 +57,10 @@ func Retry(action Action, opts *RetryOptions) Action {
 			// delay before next retry
 			time.Sleep(randDuration(delay-opts.Jitter, delay+opts.Jitter))
 
-			// delay increases exponentially
-			delay *= 2
+			// increase delay as required by the backoff strategy
+			if opts.BackoffStrategy != nil {
+				delay = opts.BackoffStrategy(delay)
+			}
 
 			// respect max delay if set
 			if opts.MaxDelay > 0 && delay > opts.MaxDelay {
@@ -67,6 +69,29 @@ func Retry(action Action, opts *RetryOptions) Action {
 		}
 
 		return nil, nil
+	}
+}
+
+// Backoff strategy that does nothing. The delay is consistent between retries.
+func BackoffStrategyNone() func(delay time.Duration) time.Duration {
+	return func(delay time.Duration) time.Duration {
+		return delay
+	}
+}
+
+// Backoff strategy that increases delay by a predefined amount after each retry.
+func BackoffStrategyLinear(increment time.Duration) func(delay time.Duration) time.Duration {
+	return func(delay time.Duration) time.Duration {
+		delay += increment
+		return delay
+	}
+}
+
+// Backoff strategy that increases delay exponentially after each retry.
+func BackoffStrategyExponential() func(delay time.Duration) time.Duration {
+	return func(delay time.Duration) time.Duration {
+		delay *= 2
+		return delay
 	}
 }
 
