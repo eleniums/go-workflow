@@ -51,12 +51,11 @@ result, err := action(1)
 For further examples, look at the unit tests.
 
 ## Functions
-- `Do`: Perform an action. Takes a function and wraps it to the Action type.
+- `Do`: Perform an action. Takes a function and wraps it in the Action type.
 - `Sequential`: Perform some actions in sequence.
 - `Parallel`: Perform some actions in parallel.
 - `If`: Conditionally perform one action or another.
 - `NoOp`: Does nothing. Useful as a dead end.
 - `Catch`: Handle an error instead of terminating the workflow.
-- `Finally`: Call a follow-up function after an action completes.
+- `Finally`: Call a follow-up function after an action completes, regardless of whether or not an error occurred.
 - `Retry`: Retry an action if an error occurs.
-
